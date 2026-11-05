@@ -348,6 +348,14 @@ composer analyse     # PHPStan, max level
 composer format      # Pint
 ```
 
+The end-to-end suite runs every operation against the NAV test environment. It is opt-in and
+needs a test technical user in a dotenv file (`NAV_USERNAME`, `NAV_PASSWORD`, `NAV_TAX_NUMBER`,
+`NAV_SIGN_KEY`, `NAV_EXCHANGE_KEY`). It always targets the test environment.
+
+```bash
+NAV_E2E_ENV=/path/to/.env.test vendor/bin/phpunit --group e2e   # default: ~/.config/nav/.env.test
+```
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

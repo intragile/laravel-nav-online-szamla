@@ -351,6 +351,14 @@ composer analyse     # PHPStan, max szint
 composer format      # Pint
 ```
 
+Az end-to-end suite minden műveletet lefuttat a NAV teszt-környezete ellen. Csak külön kérésre
+fut, és egy teszt technikai felhasználót vár dotenv fájlban (`NAV_USERNAME`, `NAV_PASSWORD`,
+`NAV_TAX_NUMBER`, `NAV_SIGN_KEY`, `NAV_EXCHANGE_KEY`). Mindig a teszt-környezetet hívja.
+
+```bash
+NAV_E2E_ENV=/útvonal/.env.test vendor/bin/phpunit --group e2e   # alapértelmezés: ~/.config/nav/.env.test
+```
+
 ## Licenc
 
 MIT. Lásd: [LICENSE](LICENSE).

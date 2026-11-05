@@ -17,11 +17,14 @@ final readonly class ExchangeToken
     ) {}
 
     /**
-     * Whether the token is still usable at the given moment, keeping a safety margin.
+     * Whether the token is usable at the given moment, keeping a safety margin before expiry.
+     *
+     * The validity window comes from NAV's clock, so the same margin is tolerated before the
+     * start: a freshly issued token often starts a few milliseconds "in the future".
      */
     public function isValidAt(DateTimeInterface $moment, int $marginSeconds = 30): bool
     {
-        return $moment >= $this->validFrom
+        return $moment->getTimestamp() + $marginSeconds >= $this->validFrom->getTimestamp()
             && $moment->getTimestamp() + $marginSeconds < $this->validTo->getTimestamp();
     }
 

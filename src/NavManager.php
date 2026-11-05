@@ -140,13 +140,15 @@ class NavManager
         /** @var class-string<NavTransaction> $model */
         $model = $this->config->get('nav-online-szamla.transactions.model', NavTransaction::class);
 
-        $transaction = $model::query()->getConnection()->transaction(function () use ($model, $kind, $tenant, $taxNumber, $items, $subject): NavTransaction {
-            $transaction = $model::query()->create([
-                'kind' => $kind,
-                'tenant' => $tenant,
-                'tax_number' => $taxNumber,
-                'state' => TransactionState::Pending,
-            ]);
+        $transaction = new $model([
+            'kind' => $kind,
+            'tenant' => $tenant,
+            'tax_number' => $taxNumber,
+            'state' => TransactionState::Pending,
+        ]);
+
+        $transaction->getConnection()->transaction(function () use ($transaction, $items, $subject): void {
+            $transaction->save();
 
             foreach ($items as $i => $item) {
                 $record = $transaction->items()->make($item + [
@@ -158,8 +160,6 @@ class NavManager
                 }
                 $record->save();
             }
-
-            return $transaction;
         });
 
         SubmitTransaction::dispatch($transaction->id)->afterCommit();
