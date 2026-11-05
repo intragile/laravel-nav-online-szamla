@@ -40,9 +40,9 @@ class NavManager
     private ?Software $software = null;
 
     public function __construct(
-        private readonly Repository $config,
-        private readonly CredentialsResolver $credentials,
-        private readonly HttpFactory $http,
+        protected readonly Repository $config,
+        protected readonly CredentialsResolver $credentials,
+        protected readonly HttpFactory $http,
         private readonly RequestIdGenerator $requestIds,
         private readonly ?LogManager $log = null,
     ) {}
@@ -167,7 +167,7 @@ class NavManager
         return $transaction;
     }
 
-    private function software(): Software
+    protected function software(): Software
     {
         if ($this->software !== null) {
             return $this->software;
