@@ -387,3 +387,7 @@ NAV_E2E_ENV=/útvonal/.env.test vendor/bin/phpunit --group e2e   # alapértelmez
 ## Licenc
 
 MIT. Lásd: [LICENSE](LICENSE).
+
+---
+
+Fejleszti és karbantartja az [IntrAgile Kft.](https://intragile.eu)

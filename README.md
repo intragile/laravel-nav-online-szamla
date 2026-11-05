@@ -383,3 +383,7 @@ NAV_E2E_ENV=/path/to/.env.test vendor/bin/phpunit --group e2e   # default: ~/.co
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+Developed and maintained by [IntrAgile Kft.](https://intragile.eu).
