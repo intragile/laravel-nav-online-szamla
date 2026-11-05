@@ -1,5 +1,9 @@
 <?php
 
+use IntrAgile\NavOnlineSzamla\Models\NavTransaction;
+use IntrAgile\NavOnlineSzamla\Models\NavTransactionItem;
+use IntrAgile\NavOnlineSzamla\Tenancy\ConfigCredentialsResolver;
+
 return [
 
     /*
@@ -79,5 +83,96 @@ return [
     'validate_xsd' => (bool) env('NAV_VALIDATE_XSD', true),
 
     'log_channel' => env('NAV_LOG_CHANNEL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tenants
+    |--------------------------------------------------------------------------
+    |
+    | Applications that submit invoices for several taxpayers address them by a
+    | tenant key. The default resolver reads "tenants.{key}" (same keys as
+    | "credentials" above); bind your own CredentialsResolver implementation
+    | to load credentials from elsewhere, e.g. an encrypted database column.
+    |
+    */
+
+    'credentials_resolver' => ConfigCredentialsResolver::class,
+
+    'tenants' => [
+        // 'acme' => [
+        //     'login' => env('ACME_NAV_USERNAME'),
+        //     'password' => env('ACME_NAV_PASSWORD'),
+        //     'tax_number' => env('ACME_NAV_TAX_NUMBER'),
+        //     'sign_key' => env('ACME_NAV_SIGN_KEY'),
+        //     'exchange_key' => env('ACME_NAV_EXCHANGE_KEY'),
+        // ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Client-side Validation
+    |--------------------------------------------------------------------------
+    |
+    | Queued submissions are checked against NAV's blocking business rules
+    | before they are sent. List error codes here to skip individual rules.
+    |
+    */
+
+    'validation' => [
+        'enabled' => (bool) env('NAV_VALIDATE_INVOICES', true),
+        'skip' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queued Submission
+    |--------------------------------------------------------------------------
+    |
+    | "polling.delays" are the seconds to wait before each status query; the
+    | last value repeats until "polling.max_attempts" is reached.
+    |
+    | After a timeout the outcome of a submission is unknown. Instead of sending
+    | it again, the package looks for it with queryTransactionList and
+    | queryInvoiceCheck "reconciliation.delay" seconds later, and resubmits only
+    | when NAV demonstrably never received it.
+    |
+    */
+
+    'queue' => [
+        'connection' => env('NAV_QUEUE_CONNECTION'),
+        'name' => env('NAV_QUEUE'),
+    ],
+
+    'polling' => [
+        'delays' => [5, 10, 20, 30, 60, 120, 300, 600, 1800],
+        'max_attempts' => (int) env('NAV_POLLING_MAX_ATTEMPTS', 30),
+    ],
+
+    'reconciliation' => [
+        'delay' => (int) env('NAV_RECONCILIATION_DELAY', 60),
+        'max_attempts' => (int) env('NAV_RECONCILIATION_MAX_ATTEMPTS', 5),
+        'resubmit' => (bool) env('NAV_RECONCILIATION_RESUBMIT', true),
+        'max_submissions' => (int) env('NAV_MAX_SUBMISSIONS', 3),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Log
+    |--------------------------------------------------------------------------
+    |
+    | Every queued submission is recorded together with the exact data sent.
+    | Set "run_migrations" to false after publishing the migration to customise
+    | it.
+    |
+    */
+
+    'transactions' => [
+        'run_migrations' => true,
+        'connection' => env('NAV_DB_CONNECTION'),
+        'table' => 'nav_transactions',
+        'items_table' => 'nav_transaction_items',
+        'model' => NavTransaction::class,
+        'item_model' => NavTransactionItem::class,
+    ],
 
 ];
