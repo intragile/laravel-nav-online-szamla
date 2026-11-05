@@ -280,4 +280,39 @@ final class NavFakeTest extends IntegrationTestCase
 
         Nav::assertNothingSubmitted();
     }
+
+    public function test_sending_the_same_invoice_twice_counts_twice(): void
+    {
+        Nav::fake();
+
+        Nav::manageInvoice($this->invoice());
+        Nav::manageInvoice($this->invoice());
+
+        Nav::assertSubmittedCount(2);
+    }
+
+    public function test_token_exchange_failures_drive_the_requeue_path(): void
+    {
+        config(['queue.default' => 'sync']);
+        Nav::fake()->failNext('tokenExchange', NavFake::connectionFailure('tokenExchange'));
+
+        $transaction = Nav::submit(InvoiceFactory::domestic()->line(InvoiceFactory::product()));
+
+        $transaction->refresh();
+        $this->assertSame(TransactionState::Finished, $transaction->state);
+        $this->assertSame(1, $transaction->submission_count);
+        Nav::assertSentCount('tokenExchange', 2);
+        Nav::assertSubmittedCount(1);
+    }
+
+    public function test_unconfigured_tenants_get_distinct_tax_numbers(): void
+    {
+        Nav::fake();
+
+        $this->assertNotSame(Nav::client('one')->credentials->taxNumber, Nav::client('two')->credentials->taxNumber);
+        Nav::client('one')->manageInvoice($this->invoice('SAME-1'));
+        $status = Nav::client('two')->queryTransactionStatus(Nav::client('two')->manageInvoice($this->invoice('SAME-1')));
+
+        $this->assertTrue($status->results[0]->isAccepted());
+    }
 }

@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use IntrAgile\NavOnlineSzamla\Enums\TransactionState;
 use IntrAgile\NavOnlineSzamla\Facades\Nav;
+use IntrAgile\NavOnlineSzamla\Jobs\PollTransactionStatus;
+use IntrAgile\NavOnlineSzamla\Jobs\ReconcileTransaction;
+use IntrAgile\NavOnlineSzamla\Jobs\SubmitTransaction;
 use IntrAgile\NavOnlineSzamla\Tests\Support\InvoiceFactory;
 
 final class CommandsTest extends IntegrationTestCase
@@ -158,5 +161,28 @@ final class CommandsTest extends IntegrationTestCase
     public function test_status_of_an_unknown_local_id_fails(): void
     {
         $this->artisan('nav:status', ['transaction' => '999'])->assertFailed();
+    }
+
+    public function test_resume_redispatches_idle_open_transactions(): void
+    {
+        Bus::fake();
+        $pending = Nav::submit(InvoiceFactory::domestic('INV-P')->line(InvoiceFactory::product()));
+        $processing = Nav::submit(InvoiceFactory::domestic('INV-R')->line(InvoiceFactory::product()));
+        $processing->transition(TransactionState::Pending, TransactionState::Processing, ['transaction_id' => 'TX']);
+        $sending = Nav::submit(InvoiceFactory::domestic('INV-S')->line(InvoiceFactory::product()));
+        $sending->transition(TransactionState::Pending, TransactionState::Sending, ['sent_at' => now()]);
+        $finished = Nav::submit(InvoiceFactory::domestic('INV-F')->line(InvoiceFactory::product()));
+        $finished->transition(TransactionState::Pending, TransactionState::Finished);
+
+        $this->travel(11)->minutes();
+        $fresh = Nav::submit(InvoiceFactory::domestic('INV-N')->line(InvoiceFactory::product()));
+
+        $this->artisan('nav:resume')->expectsOutputToContain('Resumed 3 NAV transaction(s).')->assertSuccessful();
+
+        Bus::assertDispatched(SubmitTransaction::class, fn (SubmitTransaction $j) => $j->transactionId === $pending->id);
+        Bus::assertDispatched(PollTransactionStatus::class, fn (PollTransactionStatus $j) => $j->transactionId === $processing->id);
+        Bus::assertDispatched(ReconcileTransaction::class, fn (ReconcileTransaction $j) => $j->transactionId === $sending->id);
+        Bus::assertDispatchedTimes(SubmitTransaction::class, 6);
+        $this->assertNotNull($fresh->id);
     }
 }

@@ -24,6 +24,9 @@ abstract class TransactionJob implements ShouldQueue
 
     public int $tries = 3;
 
+    /** Seconds the worker may run the job; null uses the worker's default. */
+    public ?int $timeout = null;
+
     final public function __construct(public readonly int $transactionId)
     {
         $connection = config('nav-online-szamla.queue.connection');
@@ -31,6 +34,36 @@ abstract class TransactionJob implements ShouldQueue
 
         $this->onConnection(is_string($connection) && $connection !== '' ? $connection : null);
         $this->onQueue(is_string($queue) && $queue !== '' ? $queue : null);
+        $this->timeout = static::jobTimeout();
+    }
+
+    /**
+     * Seconds after which a transaction still marked as sending can no longer be in flight.
+     *
+     * Longer than the submission job's timeout, so the worker that claimed the transaction has
+     * been stopped by then (given a queue worker that enforces timeouts).
+     */
+    public static function sendingTimeout(): int
+    {
+        return self::maxSendSeconds() + 30;
+    }
+
+    protected static function jobTimeout(): ?int
+    {
+        return null;
+    }
+
+    /**
+     * Upper bound of one send: a token exchange with all its retries and backoff, then the
+     * manage request itself, plus local processing.
+     */
+    protected static function maxSendSeconds(): int
+    {
+        $request = self::setting('http.timeout', 30) + self::setting('http.connect_timeout', 10);
+        $retries = max(0, self::setting('http.retries', 2));
+        $backoff = (int) ceil(self::setting('http.retry_delay_ms', 500) * $retries * ($retries + 1) / 2 / 1000);
+
+        return ($retries + 1) * $request + $backoff + $request + 15;
     }
 
     /**
@@ -82,13 +115,5 @@ abstract class TransactionJob implements ShouldQueue
         $value = config('nav-online-szamla.'.$key, $default);
 
         return is_numeric($value) ? (int) $value : $default;
-    }
-
-    /**
-     * Seconds after which a transaction still marked as sending must have lost its worker.
-     */
-    protected static function sendingTimeout(): int
-    {
-        return self::setting('http.timeout', 30) + self::setting('http.connect_timeout', 10) + 30;
     }
 }

@@ -52,10 +52,11 @@ class PollTransactionStatus extends TransactionJob
 
         $items = $transaction->items->keyBy('position');
         $results = [];
+        $won = false;
 
         $finished = $status->isFinished();
-        $transaction->getConnection()->transaction(function () use ($transaction, $status, $items, $finished, &$results): void {
-            if ($finished && ! $transaction->transition(TransactionState::Processing, TransactionState::Finished, ['finished_at' => now()])) {
+        $transaction->getConnection()->transaction(function () use ($transaction, $status, $items, $finished, &$results, &$won): void {
+            if ($finished && ! $won = $transaction->transition(TransactionState::Processing, TransactionState::Finished, ['finished_at' => now()])) {
                 return;
             }
 
@@ -75,10 +76,11 @@ class PollTransactionStatus extends TransactionJob
             return;
         }
 
-        if ($results === []) {
+        if (! $won) {
             return;
         }
 
+        // Fired after the commit: listeners that must not miss an event should be queued.
         foreach ($results as [$item, $result]) {
             /** @var ProcessingResult $result */
             event($result->isAccepted() ? new InvoiceAccepted($item, $result) : new InvoiceRejected($item, $result));

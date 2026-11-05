@@ -8,6 +8,7 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
+use IntrAgile\NavOnlineSzamla\Console\ResumeCommand;
 use IntrAgile\NavOnlineSzamla\Console\SoftwareIdCommand;
 use IntrAgile\NavOnlineSzamla\Console\StatusCommand;
 use IntrAgile\NavOnlineSzamla\Console\TestConnectionCommand;
@@ -75,6 +76,7 @@ final class NavOnlineSzamlaServiceProvider extends ServiceProvider
                 SoftwareIdCommand::class,
                 TestConnectionCommand::class,
                 StatusCommand::class,
+                ResumeCommand::class,
             ]);
         }
     }

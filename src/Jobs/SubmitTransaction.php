@@ -9,10 +9,13 @@ use IntrAgile\NavOnlineSzamla\Enums\TransactionState;
 use IntrAgile\NavOnlineSzamla\Events\TransactionRejected;
 use IntrAgile\NavOnlineSzamla\Events\TransactionSubmitted;
 use IntrAgile\NavOnlineSzamla\Events\TransactionUnconfirmed;
+use IntrAgile\NavOnlineSzamla\Exceptions\ConfigurationException;
 use IntrAgile\NavOnlineSzamla\Exceptions\InvoiceValidationException;
 use IntrAgile\NavOnlineSzamla\Exceptions\NavApiException;
 use IntrAgile\NavOnlineSzamla\Exceptions\NavException;
+use IntrAgile\NavOnlineSzamla\Exceptions\TokenDecodingException;
 use IntrAgile\NavOnlineSzamla\Exceptions\TransportException;
+use IntrAgile\NavOnlineSzamla\Exceptions\XsdValidationException;
 use IntrAgile\NavOnlineSzamla\Invoice\Validation\InvoiceValidator;
 use IntrAgile\NavOnlineSzamla\Models\NavTransaction;
 use IntrAgile\NavOnlineSzamla\Models\NavTransactionItem;
@@ -30,6 +33,11 @@ use Throwable;
  */
 class SubmitTransaction extends TransactionJob
 {
+    protected static function jobTimeout(): int
+    {
+        return self::maxSendSeconds();
+    }
+
     public function handle(NavManager $nav, InvoiceValidator $validator): void
     {
         $transaction = $this->transaction();
@@ -54,9 +62,10 @@ class SubmitTransaction extends TransactionJob
             return;
         }
 
+        $claim = $transaction->submission_count + 1;
         if (! $transaction->transition(TransactionState::Pending, TransactionState::Sending, [
             'sent_at' => now(),
-            'submission_count' => $transaction->submission_count + 1,
+            'submission_count' => $claim,
             'error_code' => null,
             'error_message' => null,
         ])) {
@@ -65,26 +74,32 @@ class SubmitTransaction extends TransactionJob
 
         try {
             $transactionId = $this->send($transaction, $client);
-        } catch (NavApiException|TransportException $e) {
-            $this->handleFailure($transaction, $e);
+        } catch (XsdValidationException|ConfigurationException|TokenDecodingException $e) {
+            // Raised before the manage request was sent.
+            $this->reject($transaction, $e, $claim);
 
             return;
-        } catch (NavException $e) {
-            // Raised while preparing the request (e.g. XSD validation): nothing was sent.
-            $this->reject($transaction, TransactionState::Sending, $e);
+        } catch (NavApiException|TransportException $e) {
+            $this->handleFailure($transaction, $e, $claim);
 
             return;
         } catch (Throwable $e) {
-            $this->unconfirmed($transaction, $e);
+            // Anything else may have happened after NAV received the request.
+            $this->unconfirmed($transaction, $e, $claim);
             report($e);
 
             return;
         }
 
-        if ($transaction->transition(TransactionState::Sending, TransactionState::Processing, ['transaction_id' => $transactionId])) {
+        if ($transaction->transition(TransactionState::Sending, TransactionState::Processing, ['transaction_id' => $transactionId], ['submission_count' => $claim])) {
             event(new TransactionSubmitted($transaction));
             PollTransactionStatus::schedule($transaction->id, PollTransactionStatus::delayFor(0));
+
+            return;
         }
+
+        // The claim expired while this worker was still sending: surface the orphaned NAV transaction.
+        report(new NavException("NAV transaction {$transactionId} of local transaction {$transaction->id} completed after its claim expired; check it for a duplicate submission."));
     }
 
     private function send(NavTransaction $transaction, NavClient $client): string
@@ -112,58 +127,63 @@ class SubmitTransaction extends TransactionJob
             return true;
         }
 
-        $this->reject($transaction, TransactionState::Pending, new InvoiceValidationException($violations), NavTransaction::ERROR_CLIENT_VALIDATION);
+        $this->reject($transaction, new InvoiceValidationException($violations), null, NavTransaction::ERROR_CLIENT_VALIDATION);
 
         return false;
     }
 
-    private function handleFailure(NavTransaction $transaction, NavApiException|TransportException $e): void
+    private function handleFailure(NavTransaction $transaction, NavApiException|TransportException $e, int $claim): void
     {
         $retryable = $e instanceof TransportException || $e->isRetryable();
 
         if ($e->operation === 'tokenExchange') {
-            // The submission itself was never sent.
+            // The submission itself was never sent, so this attempt does not count.
             if (! $retryable) {
-                $this->reject($transaction, TransactionState::Sending, $e);
+                $this->reject($transaction, $e, $claim);
 
                 return;
             }
 
-            if ($transaction->submission_count >= self::setting('reconciliation.max_submissions', 3)) {
-                $this->abandon($transaction, TransactionState::Sending, NavTransaction::ERROR_SUBMISSION_LIMIT, $e->getMessage());
-
-                return;
-            }
-
-            if ($transaction->transition(TransactionState::Sending, TransactionState::Pending, ['error_code' => $this->code($e), 'error_message' => $e->getMessage()])) {
+            if ($transaction->transition(TransactionState::Sending, TransactionState::Pending, [
+                'submission_count' => $claim - 1,
+                'error_code' => $this->code($e),
+                'error_message' => $e->getMessage(),
+            ], ['submission_count' => $claim])) {
                 self::schedule($transaction->id, self::setting('reconciliation.delay', 60));
             }
 
             return;
         }
 
-        // A transport failure or a transient NAV error leaves the outcome open.
-        $retryable ? $this->unconfirmed($transaction, $e) : $this->reject($transaction, TransactionState::Sending, $e);
+        // Only an explicit, permanent NAV error proves the request was refused. A transport
+        // failure, a transient error, or a response without a NAV error code (a proxy page, a
+        // truncated body) leaves the outcome open.
+        $refused = $e instanceof NavApiException && $e->errorCode !== null && ! $retryable;
+        $refused ? $this->reject($transaction, $e, $claim) : $this->unconfirmed($transaction, $e, $claim);
     }
 
-    private function unconfirmed(NavTransaction $transaction, Throwable $e): void
+    private function unconfirmed(NavTransaction $transaction, Throwable $e, int $claim): void
     {
         if ($transaction->transition(TransactionState::Sending, TransactionState::Unconfirmed, [
             'error_code' => $this->code($e),
             'error_message' => $e->getMessage(),
-        ])) {
+        ], ['submission_count' => $claim])) {
             event(new TransactionUnconfirmed($transaction));
             ReconcileTransaction::schedule($transaction->id, self::setting('reconciliation.delay', 60));
         }
     }
 
-    private function reject(NavTransaction $transaction, TransactionState $from, Throwable $e, ?string $code = null): void
+    /**
+     * @param  int|null  $claim  The claimed submission_count when sending; null before the claim.
+     */
+    private function reject(NavTransaction $transaction, Throwable $e, ?int $claim, ?string $code = null): void
     {
+        $from = $claim === null ? TransactionState::Pending : TransactionState::Sending;
         if ($transaction->transition($from, TransactionState::Rejected, [
             'error_code' => $code ?? $this->code($e),
             'error_message' => $e->getMessage(),
             'finished_at' => now(),
-        ])) {
+        ], $claim === null ? [] : ['submission_count' => $claim])) {
             event(new TransactionRejected($transaction));
         }
     }

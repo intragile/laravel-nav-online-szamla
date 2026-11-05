@@ -29,8 +29,10 @@ final class StatusCommand extends Command
             return $this->listOpen();
         }
 
-        $local = ctype_digit($argument) ? $this->model()::query()->find((int) $argument) : null;
-        if ($local === null && ctype_digit($argument)) {
+        // NAV transaction IDs are 16 characters long; shorter numbers are local log IDs.
+        $isLocal = ctype_digit($argument) && strlen($argument) < 16;
+        $local = $isLocal ? $this->model()::query()->find((int) $argument) : null;
+        if ($local === null && $isLocal) {
             $this->components->error("No local NAV transaction with ID {$argument}.");
 
             return self::FAILURE;

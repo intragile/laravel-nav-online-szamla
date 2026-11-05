@@ -27,10 +27,13 @@ final class ReconciliationTest extends IntegrationTestCase
         Event::fake([TransactionReconciled::class, TransactionAbandoned::class]);
     }
 
-    private function unconfirmed(): NavTransaction
+    /**
+     * @param  int  $checks  Negative reconciliation checks already made.
+     */
+    private function unconfirmed(int $checks = 0): NavTransaction
     {
         $transaction = Nav::submit(InvoiceFactory::domestic()->line(InvoiceFactory::product()));
-        $transaction->transition(TransactionState::Pending, TransactionState::Unconfirmed, ['sent_at' => now()->subMinute(), 'submission_count' => 1]);
+        $transaction->transition(TransactionState::Pending, TransactionState::Unconfirmed, ['sent_at' => now()->subMinute(), 'submission_count' => 1, 'reconciliation_attempts' => $checks]);
 
         return $transaction;
     }
@@ -100,7 +103,7 @@ final class ReconciliationTest extends IntegrationTestCase
 
     public function test_resubmits_when_nav_never_received_the_request(): void
     {
-        $transaction = $this->unconfirmed();
+        $transaction = $this->unconfirmed(checks: 1);
         Http::fake([
             self::URL.'/queryTransactionList' => Http::response($this->emptyTransactionListResponse()),
             self::URL.'/queryInvoiceCheck' => Http::response($this->invoiceCheckResponse(false)),
@@ -108,7 +111,9 @@ final class ReconciliationTest extends IntegrationTestCase
 
         $this->reconcile($transaction);
 
-        $this->assertSame(TransactionState::Pending, $transaction->refresh()->state);
+        $transaction->refresh();
+        $this->assertSame(TransactionState::Pending, $transaction->state);
+        $this->assertSame(0, $transaction->reconciliation_attempts);
         Event::assertDispatched(TransactionReconciled::class, fn (TransactionReconciled $e) => ! $e->found);
         Bus::assertDispatchedTimes(SubmitTransaction::class, 2);
     }
@@ -116,7 +121,7 @@ final class ReconciliationTest extends IntegrationTestCase
     public function test_abandons_instead_of_resubmitting_when_disabled(): void
     {
         config(['nav-online-szamla.reconciliation.resubmit' => false]);
-        $transaction = $this->unconfirmed();
+        $transaction = $this->unconfirmed(checks: 1);
         Http::fake([
             self::URL.'/queryTransactionList' => Http::response($this->emptyTransactionListResponse()),
             self::URL.'/queryInvoiceCheck' => Http::response($this->invoiceCheckResponse(false)),
@@ -133,7 +138,7 @@ final class ReconciliationTest extends IntegrationTestCase
     public function test_abandons_when_the_submission_limit_is_reached(): void
     {
         config(['nav-online-szamla.reconciliation.max_submissions' => 1]);
-        $transaction = $this->unconfirmed();
+        $transaction = $this->unconfirmed(checks: 1);
         Http::fake([
             self::URL.'/queryTransactionList' => Http::response($this->emptyTransactionListResponse()),
             self::URL.'/queryInvoiceCheck' => Http::response($this->invoiceCheckResponse(false)),
@@ -178,7 +183,23 @@ final class ReconciliationTest extends IntegrationTestCase
     {
         $transaction = Nav::submit(InvoiceFactory::domestic()->line(InvoiceFactory::product()));
         $transaction->transition(TransactionState::Pending, TransactionState::Sending, ['sent_at' => now(), 'submission_count' => 1]);
-        $this->travel(71)->seconds();
+        $this->travel(126)->seconds();
+        Http::fake([
+            self::URL.'/queryTransactionList' => Http::response($this->emptyTransactionListResponse()),
+            self::URL.'/queryInvoiceCheck' => Http::response($this->invoiceCheckResponse(false)),
+        ]);
+
+        $this->reconcile($transaction);
+        $this->assertSame(TransactionState::Unconfirmed, $transaction->refresh()->state);
+        $this->reconcile($transaction);
+
+        $this->assertSame(TransactionState::Pending, $transaction->refresh()->state);
+        Bus::assertDispatched(SubmitTransaction::class);
+    }
+
+    public function test_a_single_negative_check_is_repeated_before_resubmitting(): void
+    {
+        $transaction = $this->unconfirmed();
         Http::fake([
             self::URL.'/queryTransactionList' => Http::response($this->emptyTransactionListResponse()),
             self::URL.'/queryInvoiceCheck' => Http::response($this->invoiceCheckResponse(false)),
@@ -186,8 +207,9 @@ final class ReconciliationTest extends IntegrationTestCase
 
         $this->reconcile($transaction);
 
-        $this->assertSame(TransactionState::Pending, $transaction->refresh()->state);
-        Bus::assertDispatched(SubmitTransaction::class);
+        $this->assertSame(TransactionState::Unconfirmed, $transaction->refresh()->state);
+        Bus::assertDispatched(ReconcileTransaction::class, fn (ReconcileTransaction $job) => $job->delay === 60);
+        Bus::assertDispatchedTimes(SubmitTransaction::class, 1);
     }
 
     public function test_leaves_a_transaction_that_is_still_being_sent_alone(): void

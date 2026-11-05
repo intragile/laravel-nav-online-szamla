@@ -65,6 +65,7 @@ final class FakeNavClient extends NavClient
 
         return $this->handle('manageInvoice', [$invoices, $compress], function () use ($invoices): string {
             $this->assertBatch(count($invoices));
+            $this->tokenExchange();
             foreach ($invoices as $invoice) {
                 XsdValidator::validate($invoice->invoiceXml, Schema::Data);
             }
@@ -80,6 +81,7 @@ final class FakeNavClient extends NavClient
 
         return $this->handle('manageAnnulment', [$annulments], function () use ($annulments): string {
             $this->assertBatch(count($annulments));
+            $this->tokenExchange();
             foreach ($annulments as $annulment) {
                 XsdValidator::validate($annulment->toXml(), Schema::Annulment);
             }

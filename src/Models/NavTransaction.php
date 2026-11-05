@@ -40,9 +40,6 @@ class NavTransaction extends Model
     /** The request did not reach NAV or the response was lost. */
     public const ERROR_TRANSPORT = 'TRANSPORT';
 
-    /** The configured maximum number of send attempts was reached. */
-    public const ERROR_SUBMISSION_LIMIT = 'SUBMISSION_LIMIT';
-
     /** NAV did not finish processing within the configured polling attempts. */
     public const ERROR_POLLING_EXHAUSTED = 'POLLING_EXHAUSTED';
 
@@ -107,8 +104,9 @@ class NavTransaction extends Model
      * being sent twice by duplicate or retried jobs.
      *
      * @param  array<string, mixed>  $attributes  Further columns to update together with the state.
+     * @param  array<string, int|string>  $conditions  Further column values the row must still have, e.g. the claimed submission_count.
      */
-    public function transition(TransactionState $from, TransactionState $to, array $attributes = []): bool
+    public function transition(TransactionState $from, TransactionState $to, array $attributes = [], array $conditions = []): bool
     {
         $attributes['state'] = $to;
         $this->fill($attributes);
@@ -121,6 +119,7 @@ class NavTransaction extends Model
         $updated = static::query()
             ->whereKey($this->getKey())
             ->where('state', $from->value)
+            ->where($conditions)
             ->update($dirty) === 1;
 
         $updated ? $this->syncOriginal() : $this->refresh();

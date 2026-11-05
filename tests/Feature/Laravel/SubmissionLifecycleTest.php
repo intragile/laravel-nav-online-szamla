@@ -254,17 +254,14 @@ final class SubmissionLifecycleTest extends IntegrationTestCase
         Http::assertNotSent(fn (Request $r) => str_ends_with($r->url(), '/manageInvoice'));
     }
 
-    public function test_token_exchange_failures_stop_at_the_submission_limit(): void
+    public function test_token_exchange_failures_do_not_count_as_submissions(): void
     {
-        config(['nav-online-szamla.reconciliation.max_submissions' => 1]);
         $transaction = $this->queueInvoice();
         Http::fake([self::URL.'/tokenExchange' => Http::failedConnection()]);
 
         $this->handle(new SubmitTransaction($transaction->id));
 
-        $this->assertSame(TransactionState::Abandoned, $transaction->refresh()->state);
-        $this->assertSame(NavTransaction::ERROR_SUBMISSION_LIMIT, $transaction->error_code);
-        Event::assertDispatched(TransactionAbandoned::class);
+        $this->assertSame(0, $transaction->refresh()->submission_count);
     }
 
     public function test_rejected_credentials_reject_the_transaction(): void
@@ -302,7 +299,7 @@ final class SubmissionLifecycleTest extends IntegrationTestCase
         $this->handle(new SubmitTransaction($transaction->id));
 
         Http::assertNothingSent();
-        Bus::assertDispatched(ReconcileTransaction::class, fn (ReconcileTransaction $job) => $job->delay === 70);
+        Bus::assertDispatched(ReconcileTransaction::class, fn (ReconcileTransaction $job) => $job->delay === 125);
         $this->assertSame(TransactionState::Sending, $transaction->refresh()->state);
     }
 
@@ -392,5 +389,61 @@ final class SubmissionLifecycleTest extends IntegrationTestCase
 
         $this->assertLessThan(1.0, microtime(true) - $started);
         Bus::assertDispatched(PollTransactionStatus::class, fn (PollTransactionStatus $job) => $job->delay === 30);
+    }
+
+    public function test_the_submission_job_timeout_covers_a_complete_send(): void
+    {
+        $this->assertSame(95, (new SubmitTransaction(1))->timeout);
+        $this->assertNull((new PollTransactionStatus(1))->timeout);
+        $this->assertGreaterThan(95, SubmitTransaction::sendingTimeout());
+    }
+
+    public function test_a_response_without_nav_error_code_is_unconfirmed_not_rejected(): void
+    {
+        $transaction = $this->queueInvoice();
+        Http::fake([
+            self::URL.'/tokenExchange' => Http::response($this->tokenResponse()),
+            self::URL.'/manageInvoice' => Http::response('<html>Bad gateway page</html>', 403),
+        ]);
+
+        $this->handle(new SubmitTransaction($transaction->id));
+
+        $this->assertSame(TransactionState::Unconfirmed, $transaction->refresh()->state);
+        Bus::assertDispatched(ReconcileTransaction::class);
+    }
+
+    public function test_an_accepted_request_with_an_unreadable_response_is_unconfirmed(): void
+    {
+        $transaction = $this->queueInvoice();
+        Http::fake([
+            self::URL.'/tokenExchange' => Http::response($this->tokenResponse()),
+            self::URL.'/manageInvoice' => Http::response($this->okResponse('ManageInvoiceResponse', '')),
+        ]);
+
+        $this->handle(new SubmitTransaction($transaction->id));
+
+        $this->assertSame(TransactionState::Unconfirmed, $transaction->refresh()->state);
+    }
+
+    public function test_a_worker_whose_claim_expired_cannot_overwrite_a_newer_attempt(): void
+    {
+        $transaction = $this->queueInvoice();
+        $transaction->transition(TransactionState::Pending, TransactionState::Sending, ['submission_count' => 2]);
+
+        $this->assertFalse($transaction->transition(TransactionState::Sending, TransactionState::Processing, ['transaction_id' => 'OLD'], ['submission_count' => 1]));
+        $this->assertNull($transaction->refresh()->transaction_id);
+        $this->assertTrue($transaction->transition(TransactionState::Sending, TransactionState::Processing, ['transaction_id' => 'NEW'], ['submission_count' => 2]));
+    }
+
+    public function test_transaction_finished_fires_even_without_matching_items(): void
+    {
+        $transaction = $this->queueInvoice();
+        $transaction->transition(TransactionState::Pending, TransactionState::Processing, ['transaction_id' => 'TX1']);
+        Http::fake([self::URL.'/queryTransactionStatus' => Http::response($this->statusResponse([['DONE'], ['DONE']]))]);
+        $transaction->items()->update(['position' => 9]);
+
+        $this->handle(new PollTransactionStatus($transaction->id));
+
+        Event::assertDispatched(TransactionFinished::class, 1);
     }
 }

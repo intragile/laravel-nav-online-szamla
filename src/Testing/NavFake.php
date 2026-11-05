@@ -254,7 +254,8 @@ class NavFake extends NavManager
     }
 
     /**
-     * Number of distinct invoices submitted; queuing and then sending the same invoice counts once.
+     * Number of invoices submitted. Queuing an invoice and the job sending it counts once;
+     * sending the same invoice twice counts twice.
      */
     public function assertSubmittedCount(int $expected): void
     {
@@ -524,16 +525,31 @@ class NavFake extends NavManager
     }
 
     /**
-     * @return array<string, SubmittedInvoice>
+     * Invoices counted once per queuing or sending, whichever happened more often per payload.
+     *
+     * @return list<SubmittedInvoice>
      */
     private function distinctInvoices(): array
     {
-        $distinct = [];
+        $queued = [];
+        $sent = [];
         foreach ($this->invoices as $invoice) {
-            $distinct[($invoice->tenant ?? '').'|'.hash('sha256', $invoice->submission->invoiceXml)] = $invoice;
+            $key = ($invoice->tenant ?? '').'|'.hash('sha256', $invoice->submission->invoiceXml);
+            if ($invoice->transaction !== null) {
+                $queued[$key][] = $invoice;
+            } else {
+                $sent[$key][] = $invoice;
+            }
         }
 
-        return $distinct;
+        $counted = [];
+        foreach (array_unique([...array_keys($queued), ...array_keys($sent)]) as $key) {
+            $fromSent = $sent[$key] ?? [];
+            $fromQueue = $queued[$key] ?? [];
+            array_push($counted, ...(count($fromSent) > count($fromQueue) ? $fromSent : $fromQueue));
+        }
+
+        return $counted;
     }
 
     /**
@@ -570,7 +586,8 @@ class NavFake extends NavManager
             try {
                 return $this->credentials->resolve($tenant);
             } catch (ConfigurationException) {
-                $taxNumber = '12345678';
+                // Distinct per tenant, so unconfigured tenants do not share invoice numbers.
+                $taxNumber = $tenant === null ? '12345678' : sprintf('%08d', crc32($tenant) % 100_000_000);
             }
         }
 

@@ -206,8 +206,12 @@ NAV: lehet, hogy befogadta a számlát. A tranzakció `unconfirmed` állapotba k
 1. lekéri a küldési időablak tranzakcióit (`queryTransactionList`),
 2. a jelöltek eredeti kérését összeveti a naplózott XML-lel,
 3. egyezés esetén a megtalált tranzakcióazonosítóval folytatja a pollingot,
-4. ha nincs egyezés, és a `queryInvoiceCheck` sem ismeri egyik számlát sem, akkor újraküld.
-   Ez az egyetlen eset, amikor bármi újra elmegy.
+4. ha két, időben elválasztott ellenőrzés során sincs egyezés, és a `queryInvoiceCheck` sem
+   ismeri egyik számlát sem, akkor újraküld. Ez az egyetlen eset, amikor bármi újra elmegy.
+
+Végleges hibakódot tartalmazó NAV-hibaválasz elutasítja a tranzakciót. A NAV-hibakód nélküli
+válasz (például proxy-oldal vagy csonka válasz) nyitva hagyja a kimenetet, és egyeztetés
+következik.
 
 | Event | Mikor |
 |---|---|
@@ -231,6 +235,21 @@ Event::listen(function (InvoiceAccepted $event) {
 A queue kapcsolatát és nevét, a polling backoffját (`polling.delays`, az utolsó érték ismétlődik)
 és az egyeztetés korlátait a `config/nav-online-szamla.php` állítja. A `sync` driver is működik,
 de a várakozásokat a futó folyamatban tölti ki. Élesben valódi queue-t használj.
+
+**Biztonságos üzemeltetés:**
+
+- A worker kényszerítse ki a job-timeoutot (Linuxon a pcntl extension alapból elérhető). A queue
+  kapcsolat `retry_after` értéke legyen nagyobb a beküldő job timeoutjánál. Ez a `http`
+  beállításokból adódik, alapértékekkel kb. 95 másodperc.
+- Ütemezd a `nav:resume` parancsot. Ez felveszi azokat a tranzakciókat, amelyeknek elveszett a
+  jobja, például sikertelen dispatch vagy az utolsó próbálkozáson leállított worker után:
+
+  ```php
+  Schedule::command('nav:resume')->everyTenMinutes();
+  ```
+- Az eventek egyszer, az adatbázis-commit után mennek ki. Azok a listenerek, amelyeknek nem
+  szabad eventet elveszíteniük, legyenek queue-sok (`ShouldQueue`), így egy hibázó listener
+  önállóan újrapróbálódik.
 
 ## Több adóalany
 
@@ -328,6 +347,7 @@ HTTP-szinten a `Http::fake()` is használható.
 | `nav:software-id [tax-number] [--write] [--force]` | a softwareId legenerálása (egyszer) |
 | `nav:test-connection [--tenant=]` | a hitelesítő adatok ellenőrzése tokenkéréssel és adózó-lekérdezéssel |
 | `nav:status [id] [--tenant=]` | a nyitott tranzakciók listája, vagy egy tranzakció (helyi vagy NAV-azonosító) élő NAV-státusza |
+| `nav:resume [--idle=10]` | az adott ideje tétlen nyitott tranzakciók jobjának újraindítása; ütemezd |
 
 ## Sémák és a generált modell
 

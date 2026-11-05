@@ -204,8 +204,12 @@ outcome unknown: it may have accepted the invoice. The transaction is marked as
 1. lists the transactions of the sending window (`queryTransactionList`),
 2. fetches the original request of each candidate and compares it with the logged XML,
 3. resumes polling under the found transaction ID, or
-4. if nothing matches and `queryInvoiceCheck` does not know any of the invoices either,
-   resubmits. This is the only case in which anything is resent.
+4. if nothing matches and `queryInvoiceCheck` does not know any of the invoices either, in two
+   checks spaced apart, resubmits. This is the only case in which anything is resent.
+
+A NAV error response with a permanent error code rejects the transaction. A response without a
+NAV error code, such as a proxy page or a truncated body, leaves the outcome open and goes to
+reconciliation.
 
 | Event | When |
 |---|---|
@@ -229,6 +233,20 @@ Event::listen(function (InvoiceAccepted $event) {
 Configure the queue connection and name, the polling backoff (`polling.delays`, where the last
 value repeats) and the reconciliation limits in `config/nav-online-szamla.php`. The `sync`
 driver works, but it waits out the delays in the current process. Use a real queue in production.
+
+**Operating it safely:**
+
+- Run workers that enforce job timeouts (the pcntl extension is enabled by default on Linux).
+  Set the connection's `retry_after` above the submission job's timeout, which is derived from
+  the `http` settings: about 95 seconds with the defaults.
+- Schedule `nav:resume` to pick up transactions whose job was lost, for example after a failed
+  dispatch or a worker killed on its last attempt:
+
+  ```php
+  Schedule::command('nav:resume')->everyTenMinutes();
+  ```
+- Events fire once, after the database commit. Make listeners that must not miss an event
+  queued (`ShouldQueue`), so a failing listener is retried on its own.
 
 ## Multiple taxpayers
 
@@ -325,6 +343,7 @@ submissions run through the real jobs without delays.
 | `nav:software-id [tax-number] [--write] [--force]` | generate the softwareId (once) |
 | `nav:test-connection [--tenant=]` | verify credentials with a token exchange and a taxpayer query |
 | `nav:status [id] [--tenant=]` | list open transactions, or show one (local ID or NAV transaction ID) with its live NAV status |
+| `nav:resume [--idle=10]` | re-dispatch the job of open transactions idle for the given minutes; schedule it |
 
 ## Schemas and the generated model
 

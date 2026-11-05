@@ -22,7 +22,8 @@ use IntrAgile\NavOnlineSzamla\Responses\Transaction;
  * NAV records a transaction as soon as it accepts the request, so the transaction list of
  * the sending window is searched for a request carrying exactly the logged documents. When
  * one is found, polling resumes with its transaction ID. When none is found and no invoice
- * of the transaction is known to NAV either, the request never arrived and is resubmitted.
+ * of the transaction is known to NAV either, in two checks "reconciliation.delay" apart,
+ * the request never arrived and is resubmitted.
  */
 class ReconcileTransaction extends TransactionJob
 {
@@ -37,7 +38,7 @@ class ReconcileTransaction extends TransactionJob
         }
 
         if ($transaction->state === TransactionState::Sending) {
-            $stale = $transaction->updated_at->lt(now()->subSeconds(self::sendingTimeout()));
+            $stale = ($transaction->sent_at ?? $transaction->updated_at)->lt(now()->subSeconds(self::sendingTimeout()));
             if (! $stale || ! $transaction->transition(TransactionState::Sending, TransactionState::Unconfirmed)) {
                 return;
             }
@@ -78,6 +79,13 @@ class ReconcileTransaction extends TransactionJob
             return;
         }
 
+        // NAV may list a received request with a delay, so a single negative answer is not proof.
+        if ($transaction->reconciliation_attempts < 2) {
+            self::schedule($transaction->id, self::setting('reconciliation.delay', 60));
+
+            return;
+        }
+
         if (! config('nav-online-szamla.reconciliation.resubmit', true)
             || $transaction->submission_count >= self::setting('reconciliation.max_submissions', 3)) {
             $this->abandon($transaction, TransactionState::Unconfirmed, NavTransaction::ERROR_NOT_RECEIVED, 'NAV never received the request.');
@@ -85,7 +93,7 @@ class ReconcileTransaction extends TransactionJob
             return;
         }
 
-        if ($transaction->transition(TransactionState::Unconfirmed, TransactionState::Pending)) {
+        if ($transaction->transition(TransactionState::Unconfirmed, TransactionState::Pending, ['reconciliation_attempts' => 0])) {
             event(new TransactionReconciled($transaction, false));
             SubmitTransaction::schedule($transaction->id);
         }
