@@ -42,7 +42,9 @@ final class DecimalTest extends TestCase
     {
         $this->assertSame('0.3', Decimal::of('0.1')->add('0.2')->value);
         $this->assertSame('-0.1', Decimal::of('0.1')->sub('0.2')->value);
-        $this->assertSame('12.345', Decimal::of('1.2345')->mul(10)->value);
+        $this->assertSame('12.3450', Decimal::of('1.2345')->mul(10)->value);
+        $this->assertSame('630000.00', Decimal::of('600000.00')->add('30000.00')->value);
+        $this->assertSame('0.00', Decimal::of('-0.50')->add('0.50')->value);
         $this->assertSame('3.33', Decimal::of(10)->div(3, 2)->value);
         $this->assertSame('6.67', Decimal::of(20)->div(3, 2)->value);
     }
@@ -81,6 +83,7 @@ final class DecimalTest extends TestCase
         $this->assertTrue(Decimal::of('-0.00')->isZero());
         $this->assertSame('5', Decimal::of('-5')->abs()->value);
         $this->assertSame('0', Decimal::of('0')->negate()->value);
+        $this->assertSame('-1.50', Decimal::of('1.50')->negate()->value);
     }
 
     public function test_division_by_zero_is_rejected(): void

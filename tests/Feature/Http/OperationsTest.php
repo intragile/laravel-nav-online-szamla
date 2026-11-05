@@ -218,6 +218,7 @@ final class OperationsTest extends TestCase
         $this->assertSame('5KP216T7BO9N167I', $result->auditData->transactionId);
         $this->assertSame('abcdefghij12345', $result->auditData->insertedBy);
         $this->assertSame(Source::Mgm, $result->auditData->source);
+        $this->assertSame('E2E/20261105-091215', $result->invoice()->invoiceNumber);
 
         Http::assertSent(function (Request $r): bool {
             $query = $this->sentXml($r)->invoiceNumberQuery;

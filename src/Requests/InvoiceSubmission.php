@@ -6,6 +6,7 @@ namespace IntrAgile\NavOnlineSzamla\Requests;
 
 use IntrAgile\NavOnlineSzamla\Crypto\HashAlgorithm;
 use IntrAgile\NavOnlineSzamla\Enums\InvoiceOperation;
+use IntrAgile\NavOnlineSzamla\Invoice\Model\InvoiceData;
 
 /**
  * One invoice in a manageInvoice request.
@@ -22,6 +23,14 @@ final readonly class InvoiceSubmission
         public ?string $electronicInvoiceHash = null,
         public HashAlgorithm $electronicInvoiceHashAlgorithm = HashAlgorithm::Sha3_512,
     ) {}
+
+    /**
+     * Submission of typed invoice data, e.g. from InvoiceBuilder::build().
+     */
+    public static function of(InvoiceOperation $operation, InvoiceData $invoice, ?string $electronicInvoiceHash = null): self
+    {
+        return new self($operation, $invoice->toXml(), $electronicInvoiceHash);
+    }
 
     public static function create(string $invoiceXml, ?string $electronicInvoiceHash = null): self
     {

@@ -11,8 +11,8 @@ use Stringable;
  * Arbitrary-precision decimal number backed by bcmath.
  *
  * The lexical form is kept exactly as given, so values read from XML are written back
- * unchanged. Arithmetic results carry the scale needed to stay exact, except division,
- * which takes an explicit scale.
+ * unchanged. Addition, subtraction and multiplication are exact and keep the scale of
+ * their operands (like bcmath); round() drops insignificant zeros, toScale() pads.
  */
 final readonly class Decimal implements Stringable
 {
@@ -53,21 +53,21 @@ final readonly class Decimal implements Stringable
     {
         $other = self::of($other);
 
-        return new self(self::trim(bcadd($this->value, $other->value, max($this->scale(), $other->scale()))));
+        return new self(self::normalizeZero(bcadd($this->value, $other->value, max($this->scale(), $other->scale()))));
     }
 
     public function sub(self|int|string $other): self
     {
         $other = self::of($other);
 
-        return new self(self::trim(bcsub($this->value, $other->value, max($this->scale(), $other->scale()))));
+        return new self(self::normalizeZero(bcsub($this->value, $other->value, max($this->scale(), $other->scale()))));
     }
 
     public function mul(self|int|string $other): self
     {
         $other = self::of($other);
 
-        return new self(self::trim(bcmul($this->value, $other->value, $this->scale() + $other->scale())));
+        return new self(self::normalizeZero(bcmul($this->value, $other->value, $this->scale() + $other->scale())));
     }
 
     /**
@@ -99,14 +99,12 @@ final readonly class Decimal implements Stringable
      */
     public function toScale(int $scale): self
     {
-        $rounded = $this->round($scale);
-
-        return new self(bcadd($rounded->value, '0', $scale));
+        return new self(self::normalizeZero(bcadd($this->round($scale)->value, '0', $scale)));
     }
 
     public function negate(): self
     {
-        return $this->isZero() ? $this : new self(self::trim(bcmul($this->value, '-1', $this->scale())));
+        return $this->isZero() ? $this : new self(self::normalizeZero(bcmul($this->value, '-1', $this->scale())));
     }
 
     public function abs(): self
@@ -167,6 +165,14 @@ final readonly class Decimal implements Stringable
             $value = rtrim(rtrim($value, '0'), '.');
         }
 
-        return preg_match('/^-0*$/', $value) === 1 || $value === '' ? '0' : $value;
+        return self::normalizeZero($value === '' ? '0' : $value);
+    }
+
+    /**
+     * bcmath may return "-0.00" for negative operands that round to zero.
+     */
+    private static function normalizeZero(string $value): string
+    {
+        return preg_match('/^-0*(\.0*)?$/', $value) === 1 ? substr($value, 1) : $value;
     }
 }

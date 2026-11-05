@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace IntrAgile\NavOnlineSzamla\Responses;
 
+use IntrAgile\NavOnlineSzamla\Invoice\Model\InvoiceData;
+
 final readonly class InvoiceDataResult
 {
     /**
@@ -15,4 +17,12 @@ final readonly class InvoiceDataResult
         public bool $compressedContent,
         public ?string $electronicInvoiceHash = null,
     ) {}
+
+    /**
+     * The invoice data as the typed model.
+     */
+    public function invoice(): InvoiceData
+    {
+        return InvoiceData::fromXmlString($this->invoiceXml);
+    }
 }
