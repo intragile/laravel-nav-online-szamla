@@ -1,5 +1,10 @@
 # Laravel NAV Online Számla
 
+[![Tests](https://github.com/intragile/laravel-nav-online-szamla/actions/workflows/tests.yml/badge.svg)](https://github.com/intragile/laravel-nav-online-szamla/actions/workflows/tests.yml)
+[![Latest Version](https://img.shields.io/packagist/v/intragile/laravel-nav-online-szamla.svg)](https://packagist.org/packages/intragile/laravel-nav-online-szamla)
+[![PHP](https://img.shields.io/packagist/php-v/intragile/laravel-nav-online-szamla.svg)](https://packagist.org/packages/intragile/laravel-nav-online-szamla)
+[![License](https://img.shields.io/packagist/l/intragile/laravel-nav-online-szamla.svg)](LICENSE)
+
 Teljes, Laravel-natív kliens a **NAV Online Számla v3.0** interfészhez.
 
 [English documentation → README.md](README.md)

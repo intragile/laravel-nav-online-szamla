@@ -12,6 +12,12 @@
     ],
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/intragile/laravel-nav-online-szamla",
+    "support": {
+        "issues": "https://github.com/intragile/laravel-nav-online-szamla/issues",
+        "source": "https://github.com/intragile/laravel-nav-online-szamla",
+        "security": "https://github.com/intragile/laravel-nav-online-szamla/security/policy"
+    },
     "authors": [
         {
             "name": "IntrAgile Kft.",

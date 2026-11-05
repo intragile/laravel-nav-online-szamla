@@ -28,4 +28,4 @@ First public release.
 - `Nav::fake()` with an in-memory NAV and assertions.
 - Opt-in end-to-end suite against the NAV test environment.
 
-[1.0.0]: https://github.com/OWNER/laravel-nav-online-szamla/releases/tag/v1.0.0
+[1.0.0]: https://github.com/intragile/laravel-nav-online-szamla/releases/tag/v1.0.0
