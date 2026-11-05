@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] - 2026-11-05
+
+### Changed
+
+- The package homepage and the documentation link to https://intragile.eu.
+
 ## [1.0.2] - 2026-11-05
 
 ### Changed
@@ -43,6 +49,7 @@ First public release.
 - `Nav::fake()` with an in-memory NAV and assertions.
 - Opt-in end-to-end suite against the NAV test environment.
 
+[1.0.3]: https://github.com/intragile/laravel-nav-online-szamla/releases/tag/v1.0.3
 [1.0.2]: https://github.com/intragile/laravel-nav-online-szamla/releases/tag/v1.0.2
 [1.0.1]: https://github.com/intragile/laravel-nav-online-szamla/releases/tag/v1.0.1
 [1.0.0]: https://github.com/intragile/laravel-nav-online-szamla/releases/tag/v1.0.0
