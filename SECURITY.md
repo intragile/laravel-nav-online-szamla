@@ -1,5 +1,7 @@
 # Security Policy
 
+Developed and maintained by [IntrAgile Kft.](https://intragile.eu)
+
 ## Reporting a vulnerability
 
 Please report security issues privately to **info@intragile.eu** rather than opening a public
@@ -16,3 +18,7 @@ This package handles NAV technical-user credentials. By design:
 - the default environment is the NAV test system; production must be selected explicitly.
 
 Never commit real credentials, and use the NAV test environment for automated tests.
+
+---
+
+Developed and maintained by [IntrAgile Kft.](https://intragile.eu).

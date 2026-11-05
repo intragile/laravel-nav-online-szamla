@@ -1,5 +1,7 @@
 # Laravel NAV Online Számla
 
+Fejlesztő és karbantartó: [IntrAgile Kft.](https://intragile.eu)
+
 [![Tests](https://github.com/intragile/laravel-nav-online-szamla/actions/workflows/tests.yml/badge.svg)](https://github.com/intragile/laravel-nav-online-szamla/actions/workflows/tests.yml)
 [![Latest Version](https://img.shields.io/packagist/v/intragile/laravel-nav-online-szamla.svg)](https://packagist.org/packages/intragile/laravel-nav-online-szamla)
 [![PHP](https://img.shields.io/packagist/php-v/intragile/laravel-nav-online-szamla.svg)](https://packagist.org/packages/intragile/laravel-nav-online-szamla)
