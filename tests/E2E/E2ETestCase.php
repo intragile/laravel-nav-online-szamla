@@ -65,7 +65,7 @@ abstract class E2ETestCase extends TestCase
             'operation' => 'ONLINE_SERVICE',
             'main_version' => '1.0',
             'dev_name' => 'IntrAgile Kft.',
-            'dev_contact' => 'info@intragile.hu',
+            'dev_contact' => 'info@intragile.eu',
             'dev_country_code' => 'HU',
         ]);
         $app['config']->set('nav-online-szamla.http.timeout', 20);

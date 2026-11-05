@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Contact address changed to `info@intragile.eu` in the package metadata, the security policy
+  and the test fixtures.
+
 ## [1.0.1] - 2026-11-05
 
 ### Changed
