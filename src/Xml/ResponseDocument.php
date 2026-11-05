@@ -86,6 +86,27 @@ final class ResponseDocument
         return $this->elements($path, $context)[0] ?? null;
     }
 
+    public function int(string $path, ?DOMNode $context = null): ?int
+    {
+        $value = $this->string($path, $context);
+
+        return $value === null ? null : (int) $value;
+    }
+
+    public function bool(string $path, ?DOMNode $context = null): ?bool
+    {
+        $value = $this->string($path, $context);
+
+        return $value === null ? null : $value === 'true';
+    }
+
+    public function date(string $path, ?DOMNode $context = null): ?\DateTimeImmutable
+    {
+        $value = $this->string($path, $context);
+
+        return $value === null ? null : new \DateTimeImmutable($value);
+    }
+
     public function funcCode(): ?string
     {
         return $this->string('/*/common:result/common:funcCode');
