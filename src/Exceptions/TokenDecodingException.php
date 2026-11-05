@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Exceptions;
+namespace IntrAgile\NavOnlineSzamla\Exceptions;
 
-/** A NAV által adott token nem dekódolható a megadott cserekulccsal. */
+/**
+ * Thrown when an exchange token cannot be decoded with the configured exchange key.
+ */
 final class TokenDecodingException extends NavException {}

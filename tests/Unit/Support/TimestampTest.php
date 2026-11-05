@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests\Unit\Support;
+namespace IntrAgile\NavOnlineSzamla\Tests\Unit\Support;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use Intragile\NavOnlineSzamla\Support\Timestamp;
-use Intragile\NavOnlineSzamla\Support\UlidRequestIdGenerator;
+use IntrAgile\NavOnlineSzamla\Support\Timestamp;
+use IntrAgile\NavOnlineSzamla\Support\UlidRequestIdGenerator;
 use PHPUnit\Framework\TestCase;
 
 final class TimestampTest extends TestCase

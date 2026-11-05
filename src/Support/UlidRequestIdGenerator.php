@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Support;
+namespace IntrAgile\NavOnlineSzamla\Support;
 
 use Illuminate\Support\Str;
 
 /**
- * 26 karakteres ULID: időrendben rendezhető (naplóban kereshető) és ütközésmentes.
- * A NAV a sikeres, az INVALID_REQUEST_SIGNATURE és a FORBIDDEN kérések azonosítóját sem
- * engedi újra felhasználni, ezért újrapróbáláskor is mindig új azonosító kell.
+ * Time-ordered, collision-free request IDs (26-character ULIDs).
  */
 final class UlidRequestIdGenerator implements RequestIdGenerator
 {

@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Xml;
+namespace IntrAgile\NavOnlineSzamla\Xml;
 
 use DOMDocument;
-use Intragile\NavOnlineSzamla\Exceptions\XsdValidationException;
+use IntrAgile\NavOnlineSzamla\Exceptions\XsdValidationException;
 
 final class XsdValidator
 {
-    /** @throws XsdValidationException */
+    /**
+     * @throws XsdValidationException
+     */
     public static function validate(string $xml, Schema $schema): void
     {
         $previous = libxml_use_internal_errors(true);
@@ -17,7 +19,7 @@ final class XsdValidator
 
         try {
             $document = new DOMDocument;
-            // LIBXML_NONET: a validálás soha ne nyúljon hálózathoz (XXE és külső DTD ellen is).
+            // LIBXML_NONET prevents network access while loading or validating (XXE hardening).
             $loaded = $document->loadXML($xml, LIBXML_NONET);
 
             if (! $loaded || ! $document->schemaValidate($schema->path(), LIBXML_NONET)) {

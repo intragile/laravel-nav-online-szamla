@@ -2,31 +2,39 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Support;
+namespace IntrAgile\NavOnlineSzamla\Support;
 
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 
 /**
- * A NAV időbélyeg-formátumai. A `timestamp` tag és a requestSignature maszkja UGYANABBÓL a
- * pillanatból kell készüljön, ezért mindkettőt ez az osztály állítja elő, mindig UTC-ben.
+ * NAV timestamp formats, always in UTC.
+ *
+ * The header timestamp and the requestSignature mask must be derived from the same
+ * instant, so both are produced here.
  */
 final class Timestamp
 {
-    /** A kérés `timestamp` tagja, pl. 2017-12-30T18:25:45.000Z */
+    /**
+     * Header timestamp, e.g. 2017-12-30T18:25:45.000Z.
+     */
     public static function header(DateTimeInterface $moment): string
     {
         return self::utc($moment)->format('Y-m-d\TH:i:s.v\Z');
     }
 
-    /** A requestSignature-be kerülő maszk: YYYYMMDDhhmmss, UTC. */
+    /**
+     * Signature mask, YYYYMMDDhhmmss in UTC.
+     */
     public static function signatureMask(DateTimeInterface $moment): string
     {
         return self::utc($moment)->format('YmdHis');
     }
 
-    /** A jelen pillanat, ezredmásodpercre csonkolva (a tag pontossága). */
+    /**
+     * Current instant truncated to milliseconds, the precision of the header field.
+     */
     public static function now(): DateTimeImmutable
     {
         $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));

@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests\Unit\Crypto;
+namespace IntrAgile\NavOnlineSzamla\Tests\Unit\Crypto;
 
 use DateTimeImmutable;
-use Intragile\NavOnlineSzamla\Crypto\HashAlgorithm;
-use Intragile\NavOnlineSzamla\Crypto\Signer;
+use IntrAgile\NavOnlineSzamla\Crypto\HashAlgorithm;
+use IntrAgile\NavOnlineSzamla\Crypto\Signer;
 use PHPUnit\Framework\TestCase;
 
-/** Az elvárt értékek a NAV specifikáció (v3.0, 2026.02.12) 1.5.1 fejezetének példájából. */
+/**
+ * Expected values come from the worked example in section 1.5.1 of the NAV interface
+ * specification v3.0 (2026-02-12).
+ */
 final class SignerTest extends TestCase
 {
     private const REQUEST_ID = 'TSTKFT1222564';
@@ -54,7 +57,7 @@ final class SignerTest extends TestCase
 
     public function test_local_time_is_converted_to_utc_before_masking(): void
     {
-        // Budapest, nyári időszámítás: GMT+2 → 2017-07-01 10:00:00 helyi = 08:00:00 UTC.
+        // Budapest summer time is UTC+2.
         $local = new DateTimeImmutable('2017-07-01 10:00:00', new \DateTimeZone('Europe/Budapest'));
         $utc = new DateTimeImmutable('2017-07-01T08:00:00Z');
 

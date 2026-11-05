@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests\Unit\Crypto;
+namespace IntrAgile\NavOnlineSzamla\Tests\Unit\Crypto;
 
-use Intragile\NavOnlineSzamla\Crypto\TokenDecoder;
-use Intragile\NavOnlineSzamla\Exceptions\TokenDecodingException;
+use IntrAgile\NavOnlineSzamla\Crypto\TokenDecoder;
+use IntrAgile\NavOnlineSzamla\Exceptions\TokenDecodingException;
 use PHPUnit\Framework\TestCase;
 
 final class TokenDecoderTest extends TestCase
@@ -14,7 +14,7 @@ final class TokenDecoderTest extends TestCase
 
     public function test_known_aes_128_ecb_vector_decodes(): void
     {
-        // Független vektor: `printf 'hello-nav-token' | openssl enc -aes-128-ecb -K <hex(KEY)> | base64`
+        // Generated independently: printf 'hello-nav-token' | openssl enc -aes-128-ecb -K <hex(KEY)> | base64
         $this->assertSame('hello-nav-token', TokenDecoder::decode('vHgaRSAQxT5L4b8hj5ATVA==', self::KEY));
     }
 

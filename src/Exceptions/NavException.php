@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Exceptions;
+namespace IntrAgile\NavOnlineSzamla\Exceptions;
 
 use RuntimeException;
 
-/** A csomag összes kivételének közös őse: egy `catch` elég mindenre. */
+/**
+ * Base class for every exception thrown by this package.
+ */
 class NavException extends RuntimeException {}

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests\Feature;
+namespace IntrAgile\NavOnlineSzamla\Tests\Feature;
 
-use Intragile\NavOnlineSzamla\Tests\TestCase;
+use IntrAgile\NavOnlineSzamla\Tests\TestCase;
 
 final class ServiceProviderTest extends TestCase
 {

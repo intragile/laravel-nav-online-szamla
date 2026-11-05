@@ -2,29 +2,32 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Crypto;
+namespace IntrAgile\NavOnlineSzamla\Crypto;
 
 use DateTimeInterface;
-use Intragile\NavOnlineSzamla\Support\Timestamp;
+use IntrAgile\NavOnlineSzamla\Support\Timestamp;
 
 /**
- * A NAV interfész-authentikációjának hash-számításai (spec v3.0, 1.3.2 és 1.5 fejezet).
+ * Authentication hashes of the NAV Online Számla v3.0 interface.
+ *
+ * @see https://github.com/nav-gov-hu/Online-Invoice Interface specification, section 1.5
  */
 final class Signer
 {
-    /** A technikai felhasználó jelszavának nagybetűs SHA-512 hash-e. */
+    /**
+     * Upper-case SHA-512 hash of the technical user's password.
+     */
     public static function passwordHash(string $password): string
     {
         return strtoupper(hash('sha512', $password));
     }
 
     /**
-     * A requestSignature értéke.
+     * Compute the requestSignature value.
      *
-     * Üres `$operations` esetén ez a "parciális" aláírás, amit minden lekérdező operáció használ.
-     * manageInvoice / manageAnnulment esetén az `$operations` a kérés indexeinek sorrendjében
-     * tartalmazza a műveletet (pl. CREATE) és a base64 tartalmat; a NAV az index-sorrendet is
-     * beleszámolja, ezért a sorrend itt kötelezően azonos a kérésbelivel.
+     * Query operations sign requestId + timestamp + sign key only. For manageInvoice and
+     * manageAnnulment, pass one entry per index, in index order, holding the operation
+     * literal (e.g. CREATE) and the base64 payload.
      *
      * @param  list<array{operation: string, data: string}>  $operations
      */
@@ -44,8 +47,9 @@ final class Signer
     }
 
     /**
-     * Elektronikus számla (completenessIndicator) hash-lenyomata.
-     * completenessIndicator=true esetén csak SHA3-512 elfogadott (spec 2.x, electronicInvoiceHash).
+     * Hash of an electronic invoice file (electronicInvoiceHash).
+     *
+     * NAV only accepts SHA3-512 when completenessIndicator is true.
      */
     public static function electronicInvoiceHash(string $content, HashAlgorithm $algorithm = HashAlgorithm::Sha3_512): string
     {

@@ -1,10 +1,9 @@
-# XSD-forrás
+# Schema sources
 
 - `invoiceApi.xsd`, `invoiceBase.xsd`, `invoiceData.xsd`, `invoiceAnnulment.xsd`, `serviceMetrics.xsd`:
-  https://github.com/nav-gov-hu/Online-Invoice (commit `cc7a775d6dce361311e409abb9934eb755f2749c`,
-  2026-02-13). Egyetlen módosítás: a `schemaLocation` pótlása az `xs:import`-okban
-  (`bin/sync-xsd.php`).
-- `common.xsd` (NTCA common v1.0, 2020/11/23, szerző: NAV Informatikai Intézet): a hivatalos repó
-  nem tartalmazza; a `pzs/nav-online-invoice` csomag v3.0.5-ös példányából átvéve, változatlanul.
+  https://github.com/nav-gov-hu/Online-Invoice at commit `cc7a775d6dce361311e409abb9934eb755f2749c`
+  (2026-02-13). The only change is the added `schemaLocation` on `xs:import` (see `bin/sync-xsd.php`).
+- `common.xsd` (NTCA common v1.0, 2020-11-23, NAV): not published in the official repository; taken
+  unchanged from `pzs/nav-online-invoice` v3.0.5.
 
-Frissítés: `php bin/sync-xsd.php /path/to/Online-Invoice`, ellenőrzés: `--check`.
+Update with `php bin/sync-xsd.php /path/to/Online-Invoice`; verify with `--check`.

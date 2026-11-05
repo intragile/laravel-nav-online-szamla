@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Xml;
+namespace IntrAgile\NavOnlineSzamla\Xml;
 
 enum Schema: string
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla;
+namespace IntrAgile\NavOnlineSzamla;
 
 use Illuminate\Support\ServiceProvider;
 

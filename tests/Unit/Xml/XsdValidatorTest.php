@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests\Unit\Xml;
+namespace IntrAgile\NavOnlineSzamla\Tests\Unit\Xml;
 
-use Intragile\NavOnlineSzamla\Exceptions\XsdValidationException;
-use Intragile\NavOnlineSzamla\Xml\Schema;
-use Intragile\NavOnlineSzamla\Xml\XsdValidator;
+use IntrAgile\NavOnlineSzamla\Exceptions\XsdValidationException;
+use IntrAgile\NavOnlineSzamla\Xml\Schema;
+use IntrAgile\NavOnlineSzamla\Xml\XsdValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -54,18 +54,18 @@ final class XsdValidatorTest extends TestCase
 
         try {
             XsdValidator::validate($xml, Schema::Data);
-            $this->fail('Kivételt vártunk.');
+            $this->fail('Expected an exception.');
         } catch (XsdValidationException $e) {
             $this->assertSame('invoiceData.xsd', $e->schema);
             $this->assertNotEmpty($e->errors);
-            $this->assertStringContainsString('sor:', $e->errors[0]);
+            $this->assertStringContainsString('line ', $e->errors[0]);
         }
     }
 
     public function test_malformed_xml_is_rejected(): void
     {
         $this->expectException(XsdValidationException::class);
-        XsdValidator::validate('<nem-zárt>', Schema::Api);
+        XsdValidator::validate('<unclosed>', Schema::Api);
     }
 
     public function test_libxml_error_state_is_restored(): void

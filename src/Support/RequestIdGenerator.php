@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Support;
+namespace IntrAgile\NavOnlineSzamla\Support;
 
 interface RequestIdGenerator
 {
-    /** Pattern: [+a-zA-Z0-9_]{1,30}, adózónként egyedi. */
+    /**
+     * Return an ID matching [+a-zA-Z0-9_]{1,30}, unique per taxpayer.
+     */
     public function generate(): string;
 }

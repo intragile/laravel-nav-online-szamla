@@ -23,10 +23,10 @@
         "phpunit/phpunit": "^11.5|^12.0"
     },
     "autoload": {
-        "psr-4": { "Intragile\\NavOnlineSzamla\\": "src/" }
+        "psr-4": { "IntrAgile\\NavOnlineSzamla\\": "src/" }
     },
     "autoload-dev": {
-        "psr-4": { "Intragile\\NavOnlineSzamla\\Tests\\": "tests/" }
+        "psr-4": { "IntrAgile\\NavOnlineSzamla\\Tests\\": "tests/" }
     },
     "scripts": {
         "test": "phpunit",
@@ -35,7 +35,7 @@
     },
     "extra": {
         "laravel": {
-            "providers": ["Intragile\\NavOnlineSzamla\\NavOnlineSzamlaServiceProvider"]
+            "providers": ["IntrAgile\\NavOnlineSzamla\\NavOnlineSzamlaServiceProvider"]
         }
     },
     "config": { "sort-packages": true },

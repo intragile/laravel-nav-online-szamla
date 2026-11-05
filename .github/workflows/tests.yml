@@ -27,7 +27,7 @@ jobs:
       - run: vendor/bin/pint --test
 
   xsd-drift:
-    # Hetente jelzi, ha a NAV a hivatalos repóban módosította a sémákat.
+    # Weekly check that the bundled schemas still match the official NAV repository.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

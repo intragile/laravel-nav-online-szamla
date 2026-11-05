@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Tests;
+namespace IntrAgile\NavOnlineSzamla\Tests;
 
-use Intragile\NavOnlineSzamla\NavOnlineSzamlaServiceProvider;
+use IntrAgile\NavOnlineSzamla\NavOnlineSzamlaServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra

@@ -1,19 +1,19 @@
 <?php
 
 /**
- * A hivatalos NAV XSD-k átvétele a nav-gov-hu/Online-Invoice repóból.
+ * Sync the bundled XSDs from a clone of https://github.com/nav-gov-hu/Online-Invoice.
  *
  *   php bin/sync-xsd.php /path/to/Online-Invoice [--check]
  *
- * A hivatalos fájlok `xs:import`-jaiból hiányzik a `schemaLocation`, ezért a libxml nem
- * tudja feloldani őket; a script ezt pótolja, mást nem módosít. `--check` módban nem ír,
- * csak nem nulla kóddal kilép, ha a csomag XSD-i eltérnek a hivatalostól (CI-hoz).
- * A common.xsd (NTCA) nincs a hivatalos repóban, azt nem érinti.
+ * The official files omit schemaLocation on xs:import, which libxml cannot resolve; this
+ * script adds it and changes nothing else. With --check it writes nothing and exits
+ * non-zero when the bundled XSDs differ from upstream. common.xsd is not published
+ * upstream and is left untouched.
  */
 $source = $argv[1] ?? null;
 $check = in_array('--check', $argv, true);
 if ($source === null || ! is_dir($source.'/src/schemas/nav/gov/hu/OSA')) {
-    fwrite(STDERR, "Használat: php bin/sync-xsd.php /path/to/Online-Invoice [--check]\n");
+    fwrite(STDERR, "Usage: php bin/sync-xsd.php /path/to/Online-Invoice [--check]\n");
     exit(2);
 }
 
@@ -32,7 +32,7 @@ foreach (glob($source.'/src/schemas/nav/gov/hu/OSA/*.xsd') as $file) {
         '#<xs:import namespace="([^"]+)"\s*/>#',
         static function (array $m) use ($locations): string {
             if (! isset($locations[$m[1]])) {
-                throw new RuntimeException("Ismeretlen importált namespace: {$m[1]}");
+                throw new RuntimeException("Unknown imported namespace: {$m[1]}");
             }
 
             return sprintf('<xs:import namespace="%s" schemaLocation="%s"/>', $m[1], $locations[$m[1]]);
@@ -43,7 +43,7 @@ foreach (glob($source.'/src/schemas/nav/gov/hu/OSA/*.xsd') as $file) {
     $out = $target.'/'.basename($file);
     if ($check) {
         if (! is_file($out) || file_get_contents($out) !== $xsd) {
-            fwrite(STDERR, 'ELTÉR: '.basename($file)."\n");
+            fwrite(STDERR, 'Differs: '.basename($file)."\n");
             $drift = true;
         }
 
@@ -51,7 +51,7 @@ foreach (glob($source.'/src/schemas/nav/gov/hu/OSA/*.xsd') as $file) {
     }
 
     file_put_contents($out, $xsd);
-    echo 'Frissítve: '.basename($file)."\n";
+    echo 'Updated: '.basename($file)."\n";
 }
 
 exit($drift ? 1 : 0);

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Crypto;
+namespace IntrAgile\NavOnlineSzamla\Crypto;
 
-/** A NAV `cryptoType` attribútumának értékkészlete. */
+/**
+ * Values of the NAV cryptoType attribute.
+ */
 enum HashAlgorithm: string
 {
     case Sha512 = 'SHA-512';

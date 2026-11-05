@@ -2,24 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Intragile\NavOnlineSzamla\Exceptions;
+namespace IntrAgile\NavOnlineSzamla\Exceptions;
 
 use LibXMLError;
 
-/** A kimenő XML nem felel meg a hivatalos NAV sémának. Beküldés előtt dobódik. */
+/**
+ * The XML document does not conform to the official NAV schema.
+ */
 final class XsdValidationException extends NavException
 {
-    /** @param  list<string>  $errors */
+    /**
+     * @param  list<string>  $errors
+     */
     public function __construct(public readonly string $schema, public readonly array $errors)
     {
-        parent::__construct(sprintf("Az XML nem felel meg a(z) %s sémának:\n- %s", $schema, implode("\n- ", $errors)));
+        parent::__construct(sprintf("XML does not conform to %s:\n- %s", $schema, implode("\n- ", $errors)));
     }
 
-    /** @param  array<LibXMLError>  $errors */
+    /**
+     * @param  array<LibXMLError>  $errors
+     */
     public static function fromLibxml(string $schema, array $errors): self
     {
         return new self($schema, array_values(array_map(
-            static fn (LibXMLError $e): string => sprintf('%d. sor: %s', $e->line, trim($e->message)),
+            static fn (LibXMLError $e): string => sprintf('line %d: %s', $e->line, trim($e->message)),
             $errors,
         )));
     }
