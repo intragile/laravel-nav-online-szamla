@@ -18,13 +18,14 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php: ${{ matrix.php }}
-          extensions: dom, libxml, openssl
+          extensions: bcmath, dom, libxml, openssl
           coverage: none
       - run: composer require "illuminate/support:${{ matrix.laravel }}" --no-update --no-interaction
       - run: composer update --prefer-dist --no-interaction --no-progress
       - run: vendor/bin/phpunit
       - run: vendor/bin/phpstan analyse --memory-limit=1G
       - run: vendor/bin/pint --test
+      - run: php bin/generate-model.php --check
 
   xsd-drift:
     # Weekly check that the bundled schemas still match the official NAV repository.
